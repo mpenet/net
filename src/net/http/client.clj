@@ -14,6 +14,7 @@
            io.netty.channel.ChannelOutboundHandlerAdapter
            io.netty.channel.ChannelHandler
            io.netty.channel.ChannelOption
+           io.netty.channel.ChannelPipeline
            io.netty.channel.ChannelInitializer
            io.netty.channel.ChannelFutureListener
 
@@ -37,6 +38,7 @@
            io.netty.handler.codec.http.DefaultFullHttpRequest
            io.netty.handler.codec.http.QueryStringEncoder
            io.netty.handler.ssl.SslContext
+           io.netty.handler.ssl.SslHandler
            java.net.URI
            java.nio.charset.Charset
            javax.xml.bind.DatatypeConverter))
@@ -60,7 +62,7 @@
         ;; This actually releases the content
         (.release msg)))))
 
-(defn netty-handler
+(defn ^ChannelInboundHandlerAdapter netty-handler
   "Simple netty-handler, everything may happen in
    channel read, since we're expecting a full http request."
   [f]
@@ -71,9 +73,9 @@
       (let [callback (response-handler f ctx msg)]
         (callback)))))
 
-(defn ssl-ctx-handler
+(defn ^SslHandler ssl-ctx-handler
   "Add an SSL context handler to a channel"
-  [ssl-ctx ^Channel channel]
+  [^SslContext ssl-ctx ^Channel channel]
   (.newHandler ssl-ctx (.alloc channel)))
 
 (defn request-initializer
@@ -82,7 +84,7 @@
    (request-initializer ssl-ctx handler 1048576))
   ([ssl-ctx handler max-body-size]
    (proxy [ChannelInitializer] []
-     (initChannel [channel]
+     (initChannel [^Channel channel]
        (let [pipeline (.pipeline channel)]
          (when ssl-ctx
            (.addLast pipeline "ssl" (ssl-ctx-handler ssl-ctx channel)))
@@ -139,7 +141,7 @@
    Throws on other values."
   [m]
   (let [e  (IllegalArgumentException. (str "invalid http method: " m))
-        kw (when (string? m) (-> m .toLowerCase keyword))]
+        kw (when (string? m) (-> ^String m .toLowerCase keyword))]
     (cond
       (instance? HttpMethod m) m
       (nil? m)                 HttpMethod/GET

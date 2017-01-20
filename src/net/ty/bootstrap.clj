@@ -71,7 +71,7 @@
   (let [bs (ServerBootstrap.)]
     (if-let [c (:child-group config)]
       (.group bs (or (:group config) (nio-event-loop-group)) c)
-      (.group bs (or (:group config) (nio-event-loop-group))))
+      (.group ^AbstractBootstrap bs (or (:group config) (nio-event-loop-group))))
     (.channel bs (or (:channel config) nio-server-socket-channel))
     (doseq [[k v] (:options config) :let [copt (->channel-option k)]]
       (.option bs copt (if (number? v) (int v) v)))
